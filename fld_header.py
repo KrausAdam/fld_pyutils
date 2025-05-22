@@ -42,8 +42,8 @@ class FldHeader:
     glel
         Array of global element indices; shape must be ``(nelt,)``
     """
-
-    _endian_check_val = 6.54321
+    # default float is 64-bit, convert to 32-bit to match header spacing
+    _endian_check_val = np.float32(6.54321)
 
     def __init__(self,
                  nelgt: int,
@@ -139,7 +139,9 @@ class FldHeader:
             # If necessary, switch endianness of float type
             endian_test_val = np.fromfile(f, dtype=np.float32, count=1)[0]
             if np.abs(endian_test_val - cls._endian_check_val) > 1e-6:
+                print('WARNING: Endian was switched! Previous float_type was ',float_type)
                 float_type = float_type.newbyteorder('S')
+                print('New float_type is ',float_type)
 
             # Always set int size to int32
             int_type = np.dtype(np.int32)
@@ -229,7 +231,8 @@ class FldHeader:
             f.write(header_text.encode('ascii'))
             blanks = " " * (132 - f.tell())
             f.write(blanks.encode('ascii'))
-            f.write(np.array([self.__class__._endian_check_val], dtype=self.float_type).tobytes())
+            # always 32-bit, convert it
+            f.write(np.array([self.__class__._endian_check_val], dtype=np.float32).tobytes())
             f.write(self.glel.tobytes())
 
     def __repr__(self):

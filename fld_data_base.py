@@ -57,14 +57,18 @@ class FldDataBase(ABC):
         def vec_field_metadata(v):
             # For coords and u
             cols = []
+            # metadata is 32-bit, add wrk array to be safe
+            wrk = v.astype('float32')
             for i in range(self.ndims):
-                cols.append(np.min(v[:, i, :], axis=1))
-                cols.append(np.max(v[:, i, :], axis=1))
+                cols.append(np.min(wrk[:, i, :], axis=1))
+                cols.append(np.max(wrk[:, i, :], axis=1))
             return np.column_stack(cols)
 
         def scal_field_metadata(v):
             # For p, t, and each field in s
-            return np.column_stack([np.min(v, axis=-1), np.max(v, axis=-1)])
+            # ditto for the scalar fields
+            wrk = v.astype('float32')
+            return np.column_stack([np.min(wrk, axis=-1), np.max(wrk, axis=-1)])
 
         if len(self._coords):
             file.write(vec_field_metadata(self._coords).tobytes())
@@ -116,6 +120,11 @@ class FldDataBase(ABC):
     def time(self) -> float:
         """ Absolute simulation time of this file's state """
         return self._header.time
+
+    # time setter not read-only, can change to output e.g. total averaging time
+    @time.setter
+    def time(self, other: float):
+        self._header.time = other
 
     @property
     def iostep(self) -> int:
